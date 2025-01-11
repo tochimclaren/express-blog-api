@@ -4,22 +4,23 @@ import { z, ZodError } from 'zod';
 import { getUserBySessionToken } from "../models/user";
 import { StatusCodes } from 'http-status-codes';
 import { AuthRequest } from '../utils/express';
+import { FORBIDDEN, BAD_REQUEST, UNAUTHORIZED, NOT_ALLOWED, INTERNAL_SERVER_ERROR } from '../constants/http.code';
 
 export const isAuthenticated = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const sessionToken = req.cookies['AUTH-COOKIE'];
     if (!sessionToken) {
-      return res.sendStatus(401)
+      return res.sendStatus(UNAUTHORIZED)
     }
     const user = await getUserBySessionToken(sessionToken);
     if (!user) {
-      return res.sendStatus(403)
+      return res.sendStatus(FORBIDDEN)
     }
     lodash.merge(req, { identity: user })
     next()
   } catch (error) {
     console.log(error)
-    return res.sendStatus(400)
+    return res.sendStatus(BAD_REQUEST)
   }
 
 }
@@ -67,20 +68,34 @@ export const isOwner = async (req: AuthRequest, res: Response, next: NextFunctio
     const currentUserId = lodash.get(req, 'identity._id') as string;
     if (!currentUserId) {
       console.log("missing user id")
-      return res.sendStatus(403)
+      return res.sendStatus(FORBIDDEN)
     }
     if (currentUserId.toString() !== id) {
       console.log("current owner does not match with comment owner")
-      return res.sendStatus(403)
+      return res.sendStatus(FORBIDDEN)
     }
     next()
   } catch (error) {
     console.log(error)
-    return res.sendStatus(400)
+    return res.sendStatus(BAD_REQUEST)
   }
 }
 
 export const isAdmin = async (req: AuthRequest, res: Response, next: NextFunction): Promise<any> => {
-  console.log("checking if this user has permission to delete this")
-  next()
+  try {
+    const currentUserId = lodash.get(req, 'identity._id') as string;
+    const sessionToken = req.cookies['AUTH-COOKIE'];
+    if (currentUserId && sessionToken) {
+      const user = await getUserBySessionToken(sessionToken)
+      if (!user) {
+        return res.sendStatus(BAD_REQUEST)
+      }
+      if (user && user.isAdmin === true) {
+        next()
+      }
+    }
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(INTERNAL_SERVER_ERROR)
+  }
 }
