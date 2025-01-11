@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Post from "../models/post"
 import { pageObj } from "../utils/pagination";
+import { OK } from "../constants/http.code";
 
 
 export const home = async (req: Request, res: Response): Promise<any> => {
@@ -9,14 +10,14 @@ export const home = async (req: Request, res: Response): Promise<any> => {
 
     const filter: Record<string, any> = {};
     if (featured !== undefined) filter.featured = featured;
-    
+
     const totalItems = await Post.countDocuments(filter);
     const totalPages = Math.ceil(totalItems / limit);
     const posts = await Post.find(filter)
         .skip((page - 1) * limit)
         .limit(limit);
 
-    return res.status(200).json({
+    return res.status(OK).json({
         page,
         limit,
         totalItems,

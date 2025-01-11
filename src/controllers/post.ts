@@ -5,6 +5,7 @@ import { AuthRequest } from "../utils/express"
 import { pageObj } from "../utils/pagination"
 import Like from "../models/like"
 import User from "../models/user"
+import { BAD_REQUEST, CREATED, FORBIDDEN, INTERNAL_SERVER_ERROR, NO_CONTENT, NOT_ALLOWED, NOT_FOUND, OK } from "../constants/http.code"
 
 
 
@@ -43,7 +44,7 @@ export const postList = async (req: Request, res: Response): Promise<any> => {
             };
         });
 
-        return res.status(200).json({
+        return res.status(OK).json({
             page,
             limit,
             totalItems,
@@ -52,30 +53,30 @@ export const postList = async (req: Request, res: Response): Promise<any> => {
         });
     } catch (error) {
         console.log(error)
-        return res.status(500).send({ "message": "Something went wrong" })
+        return res.status(INTERNAL_SERVER_ERROR).send({ "message": "Something went wrong" })
     }
 }
 export const postByAuthor = async (req: Request, res: Response): Promise<any> => {
     try {
         const { username } = req.params
         if (!username) {
-            return res.sendStatus(405)
+            return res.sendStatus(NOT_ALLOWED)
         }
         const user = await User.findOne({ username })
         console.log(user)
         if (!user) {
-            return res.status(404).json({ "message": `Author with username ${username} does not exist` })
+            return res.status(NOT_FOUND).json({ "message": `Author with username ${username} does not exist` })
         }
         const posts = await Post.find({ author: user._id })
         console.log(posts)
 
         if (posts) {
-            return res.status(200).json(posts)
+            return res.status(OK).json(posts)
         }
 
     } catch (error) {
         console.log(error)
-        return res.sendStatus(500)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
     }
 }
 
@@ -85,7 +86,7 @@ export const postDetail = async (req: Request, res: Response): Promise<any> => {
         const { page = 1, limit = 10 } = pagination
         const { postId } = req.params
         if (!postId) {
-            return res.status(403).json({ "message": "requires postId param" })
+            return res.status(FORBIDDEN).json({ "message": "requires postId param" })
         }
         let comments;
         const post = await Post.findById(postId)
@@ -96,17 +97,17 @@ export const postDetail = async (req: Request, res: Response): Promise<any> => {
             if (postComments) {
                 comments = postComments
             }
-            return res.status(200).json({
+            return res.status(OK).json({
                 post,
                 comments,
             })
         }
         if (!post) {
-            return res.send(404).json({ "message": `Post with id ${postId} not found` })
+            return res.send(NOT_FOUND).json({ "message": `Post with id ${postId} not found` })
         }
     } catch (error) {
         console.log(error)
-        return res.sendStatus(500)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
     }
 
 }
@@ -125,10 +126,10 @@ export const postCreate = async (req: AuthRequest, res: Response): Promise<any> 
             published
         }
         const post = await createPost(data)
-        return res.status(201).json(post).end();
+        return res.status(CREATED).json(post).end();
     } catch (error) {
         console.log(error)
-        return res.sendStatus(400)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
     }
 }
 
@@ -138,15 +139,15 @@ export const postUpdate = async (req: AuthRequest, res: Response): Promise<any> 
         const { _id: author } = req.identity
         const { title, slug, content, featured, published } = req.body
         if (!postId) {
-            return res.sendStatus(403)
+            return res.sendStatus(FORBIDDEN)
         }
         if (!title || !slug || !content) {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
 
         }
         const post = await getPost(postId)
         if (!post) {
-            return res.sendStatus(404)
+            return res.sendStatus(NOT_FOUND)
         }
         const data: IPost = {
             title,
@@ -157,12 +158,12 @@ export const postUpdate = async (req: AuthRequest, res: Response): Promise<any> 
             published,
         }
         const toUpdate = await updatePost(postId, data)
-        return res.status(200).send(toUpdate)
+        return res.status(OK).send(toUpdate)
 
     } catch (error) {
         console.log(error)
 
-        return res.sendStatus(400)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
     }
 }
 
@@ -170,14 +171,14 @@ export const postDelete = async (req: Request, res: Response): Promise<any> => {
     try {
         const { postId } = req.params
         if (!postId) {
-            return res.sendStatus(404)
+            return res.sendStatus(NOT_FOUND)
         }
         await deletePost(postId)
 
-        return res.status(204).send({ message: `Post with id ${postId} was removed` })
+        return res.status(NO_CONTENT).send({ message: `Post with id ${postId} was removed` })
 
     } catch (error) {
         console.log(error)
-        return res.sendStatus(400)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
     }
 }

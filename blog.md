@@ -121,7 +121,3 @@ Stores likes on blog posts by users.
    - CRUD operations for blog posts.
 4. **Manage Categories**  
    - CRUD operations for categories.
-
----
-
-Let me know if you need detailed SQL scripts, API endpoints, or further enhancements.

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import Category, {
+import {
     listCategory,
     getCategoryById,
     createCategory,
@@ -7,20 +7,22 @@ import Category, {
     deleteCategory,
     ICategory
 } from "../models/category";
+import { BAD_REQUEST, FORBIDDEN, OK, INTERNAL_SERVER_ERROR, NOT_FOUND } from "../constants/http.code"
+
 
 export const categoryList = async (_: Request, res: Response): Promise<any> => {
     console.log("category endpoint")
     try {
         const categories = await listCategory();
         if (!categories) {
-            return res.status(404).send({
+            return res.status(NOT_FOUND).send({
                 "message": "Categories do not exist"
             })
         }
-        return res.status(200).json(categories).end()
+        return res.status(OK).json(categories).end()
     } catch (error) {
         console.log(error)
-        return res.sendStatus(400)
+        return res.sendStatus(BAD_REQUEST)
     }
 
 }
@@ -29,18 +31,18 @@ export const categoryItem = async (req: Request, res: Response): Promise<any> =>
     try {
         const { categoryId } = req.params
         if (!categoryId) {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
         }
         const category = await getCategoryById(categoryId)
         if (!category) {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
         }
 
-        return res.status(200).send(category)
+        return res.status(OK).send(category)
 
     } catch (error) {
         console.log(error)
-        return res.sendStatus(400)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
     }
 }
 
@@ -49,18 +51,18 @@ export const categoryCreate = async (req: Request, res: Response): Promise<any> 
     try {
         const { name, slug } = req.body
         if (!name && !slug) {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
         }
         const data: ICategory = {
             name: name,
             slug: slug
         }
         const category = await createCategory(data);
-        return res.status(200).send(category)
+        return res.status(OK).send(category)
 
     } catch (error) {
         console.log(error)
-        return res.sendStatus(400)
+        return res.sendStatus(BAD_REQUEST)
     }
 }
 
@@ -70,15 +72,15 @@ export const categoryUpdate = async (req: Request, res: Response): Promise<any> 
         const { name, slug } = req.body
 
         if (!categoryId) {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
         }
         if (!name && !slug) {
-            return res.sendStatus(403)
+            return res.sendStatus(FORBIDDEN)
         }
 
         const category = await getCategoryById(categoryId)
         if (!category) {
-            return res.sendStatus(404)
+            return res.sendStatus(NOT_FOUND)
         }
         const data = {
             name: name,
@@ -86,9 +88,11 @@ export const categoryUpdate = async (req: Request, res: Response): Promise<any> 
         }
         const updatedCategory = await updateCategory(categoryId, data)
 
-        return res.status(200).send(updatedCategory)
+        return res.status(OK).send(updatedCategory)
 
     } catch (error) {
+        console.log(error)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
 
     }
 
@@ -99,18 +103,16 @@ export const categoryDelete = async (req: Request, res: Response): Promise<any> 
     try {
         const { categoryId } = req.params
         if (!categoryId) {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
         }
         const category = await getCategoryById(categoryId)
         if (!category) {
-            return res.sendStatus(404)
+            return res.sendStatus(NOT_FOUND)
         }
-
         await deleteCategory(categoryId)
-
-        return res.status(200).send({ message: "category removed" })
+        return res.status(OK).send({ message: "category removed" })
     } catch (error) {
         console.log(error)
-        return res.sendStatus(400)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
     }
 }

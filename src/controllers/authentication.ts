@@ -1,6 +1,7 @@
 import { authentication, random } from "../helpers/index";
 import { createUser, getUserByEmail, updateUserById, userUpdateType } from "../models/user";
 import { Request, Response } from "express";
+import { BAD_REQUEST, FORBIDDEN, OK, INTERNAL_SERVER_ERROR } from "../constants/http.code"
 
 export const login = async (req: Request, res: Response): Promise<any> => {
     try {
@@ -8,7 +9,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
         const user = await getUserByEmail(email).select('+authentication.salt +authentication.password')
         let data;
         if (!user) {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
         }
         let passwordHash = null
 
@@ -22,20 +23,20 @@ export const login = async (req: Request, res: Response): Promise<any> => {
             }
 
         } else {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
         }
         if (passwordHash && user.authentication.password !== passwordHash) {
-            return res.sendStatus(403)
+            return res.sendStatus(FORBIDDEN)
         }
         const salt = random()
         user.authentication.sessionToken = authentication(salt, user._id.toString());
         await user.save()
 
         res.cookie("AUTH-COOKIE", user.authentication.sessionToken, { domain: 'localhost', path: "/" })
-        return res.status(200).json(data).end();
+        return res.status(OK).json(data).end();
 
     } catch (error) {
-        return res.sendStatus(500)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
     }
 }
 
@@ -45,11 +46,11 @@ export const register = async (req: Request, res: Response): Promise<any> => {
         const { username, email, password } = req.body
 
         if (!username || !email || !password) {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
         }
         const userExists = await getUserByEmail(email);
         if (userExists) {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
         }
 
         const salt = random();
@@ -61,11 +62,11 @@ export const register = async (req: Request, res: Response): Promise<any> => {
                 password: authentication(salt, password)
             }
         })
-        return res.status(200).json(user).end();
+        return res.status(OK).json(user).end();
 
     } catch (error) {
         console.log(error)
-        return res.sendStatus(400)
+        return res.sendStatus(BAD_REQUEST)
     }
 }
 export const updateUser = async (req: Request, res: Response): Promise<any> => {
@@ -73,7 +74,7 @@ export const updateUser = async (req: Request, res: Response): Promise<any> => {
         const { userId } = req.params
         const { username, email, isAdmin } = req.body
         if (!userId) {
-            return res.status(400).send({ "message": "query param missing user id" })
+            return res.status(BAD_REQUEST).send({ "message": "query param missing user id" })
         }
         const data: userUpdateType = {
             username,
@@ -82,13 +83,13 @@ export const updateUser = async (req: Request, res: Response): Promise<any> => {
         }
         const user = await updateUserById(userId, data)
         if (user) {
-            return res.status(200).send(user)
+            return res.status(OK).send(user)
         } else {
-            return res.status(400).send({ "message": "unable to complete action" })
+            return res.status(BAD_REQUEST).send({ "message": "unable to complete action" })
         }
     } catch (error) {
         console.log(error)
-        return res.sendStatus(400)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
     }
 
 }
@@ -100,24 +101,24 @@ export const changePasswordByEmail = async (req: Request, res: Response): Promis
         const { email, password, oldPassword } = req.body
         const user = await getUserByEmail(email)
         if (!user) {
-            return res.sendStatus(400)
+            return res.sendStatus(BAD_REQUEST)
         }
         if (user && authentication(user.authentication.salt, oldPassword) === user.authentication.password) {
             const salt = random();
             user.authentication.password = authentication(salt, password)
             user.save()
-            return res.status(200).send({ "message": "password changed successfully" })
+            return res.status(OK).send({ "message": "password changed successfully" })
         }
-        return res.sendStatus(403)
+        return res.sendStatus(FORBIDDEN)
 
     } catch (error) {
         console.log(error)
-        return res.sendStatus(400)
+        return res.sendStatus(INTERNAL_SERVER_ERROR)
     }
 }
 
 
 export const logout = async (_: Request, res: Response): Promise<any> => {
     res.clearCookie("AUTH-COOKIE");
-    return res.status(200).send({ message: "logged out!" })
+    return res.status(OK).send({ message: "logged out!" })
 }
