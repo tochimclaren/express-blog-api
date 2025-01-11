@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: express-blog
+    ports:
+      - "3000:3000"  # Map container port 3000 to host port 3000
+    volumes:
+      - .:/app        # Mount the current directory to /app inside the container
+      - /app/node_modules  # Prevent node_modules from being overwritten by volume mount
+    environment:
+      - NODE_ENV=development
+    command: ["npm", "run", "dev"]  # Run the app using nodemon in dev mode
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo-db
+    ports:
+      - "27017:27017"  # Expose MongoDB on the host at port 27017
+    volumes:
+      - mongo_data:/data/db  # Persist MongoDB data in a named volume
+
+volumes:
+  mongo_data:  # Define volume for MongoDB data persistence
